@@ -146,7 +146,6 @@ sampEndSeek = -SAMP_LEN*nSampPerBuff-SAMPTIME_SKIP + SAMPTIME_LEN/2;
 
 
 iner = nan(nSamp, INER_LEN);
-inerPrec = sprintf('%d*int16', INER_LEN);
 %%
 while(eofstat==0)
 % for i = 1:4600
@@ -185,7 +184,7 @@ while(eofstat==0)
 %                 fseek(fid, gyroSeek, 'cof');
                 
                 iner(iSample:iSample + nSampPerBuff - 1, :) = ...
-                    fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
+                    fread(fid, [INER_LEN, nSampPerBuff], 'INER_LEN*int16', )
                 iSample = iSample + nSampPerBuff;
                 fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
         end
