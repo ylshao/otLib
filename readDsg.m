@@ -1,5 +1,12 @@
 
-FileName = '1416.DSG';
+FileName = 'test2.DSG';
+if numel(FileName) <= 5
+SAMPTIME_LEN = 0; % 2 * 2
+WRITETIME_LEN = 0; % 4 * 2
+else
+SAMPTIME_LEN = 4; % 2 * 2
+WRITETIME_LEN = 8; % 4 * 2
+end
 fid=fopen(FileName);
 if(fid<1)
     disp('Unable to Open File');
@@ -59,25 +66,27 @@ nSIDSPEC=nSIDSPEC-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %               Below are my modifications
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-HEAD_LEN = 112; % the length of header bytes above
-SAMPTIME_LEN = 4; % 2 * 2
-WRITETIME_LEN = 8; % 4 * 2
-listing = dir(FileName);
-fileLen = listing.bytes;
+HEAD_LEN = ftell(fid); % the length of header bytes above
+% SAMPTIME_LEN = 4; % 2 * 2
+% WRITETIME_LEN = 8; % 4 * 2
+% listing = dir(FileName);
+fseek(fid, 0, 'eof');
+fileLen = ftell(fid);
+fseek(fid, HEAD_LEN, 'bof');
 SENSOR_SPEC_LEN = 10;
 BUFFER_LEN = SID_SPEC(1).nBytes;
-SAMPLE_LEN = SID_SPEC(1).NumChan * 2 + SAMPTIME_LEN; % 2bytesPerChan + sampleTime
+SAMP_LEN = SID_SPEC(1).NumChan * 2 + SAMPTIME_LEN; % 2bytesPerChan + sampleTime
 
 nBuffer = ceil((fileLen - HEAD_LEN)/(BUFFER_LEN+SENSOR_SPEC_LEN));
-nSampPerBuff = (BUFFER_LEN - WRITETIME_LEN)/SAMPLE_LEN;
-nSample = nBuffer * nSampPerBuff;
+nSampPerBuff = (BUFFER_LEN - WRITETIME_LEN)/SAMP_LEN;
+nSamp = nBuffer * nSampPerBuff;
 if nSIDSPEC > 1
-    sampleRatio = SID_SPEC(1,2).SPus/SID_SPEC(1,1).SPus;
+    sampleRatio = SID_SPEC(2).SPus/SID_SPEC(1).SPus;
 %     if WRITETIME_LEN == 0
 %         nRecLen = nSensorData + ceil(nSensorData/sampleRatio);
 %     else
-        nSample = nSample + ceil(nSample/sampleRatio);
-        nBuffer = nBuffer + ceil(nSample/sampleRatio);
+        nSamp = nSamp + ceil(nSamp/sampleRatio);
+        nBuffer = nBuffer + ceil(nSamp/sampleRatio);
 %     end   
 end
 
@@ -91,15 +100,54 @@ pos = ftell(fid);
 clear SID_REC
 SID_REC(nBuffer, 1) = struct;
 writeTime = nan(nBuffer, 2);
-sampleTime = nan(nSample, 2);
-accel = nan(nSample, 3);
-mag = nan(nSample, 3);
-gyro = nan(nSample, 3);
+sampleTime = nan(nSamp, 2);
+accel = nan(nSamp, 3);
+mag = nan(nSamp, 3);
+gyro = nan(nSamp, 3);
 
 % sample = SAMPLE_LEN
 %%
+thisSensorId = 1;
+if(bitand(SID_SPEC(thisSensorId).SensorType,32))
+    accelLen = 3;
+    nAccelSampPerBuff = nSampPerBuff;
+    accelSeek = -SAMP_LEN*nAccelSampPerBuff+6;
+else
+    accelLen = 0;
+    nAccelSampPerBuff = 0;
+    accelSeek = 0;
+end
+
+if(bitand(SID_SPEC(thisSensorId).SensorType,16))
+    magLen = 3;
+    nMagSampPerBuff = nSampPerBuff;
+    magSeek = -SAMP_LEN*nMagSampPerBuff+6;
+else
+    magLen = 0;
+    nMagSampPerBuff = 0;
+    magSeek = 0;
+end
+
+if(bitand(SID_SPEC(thisSensorId).SensorType,8))
+    gyroLen = 3;
+    nGyroSampPerBuff = nSampPerBuff;
+    gyroSeek = -SAMP_LEN*nGyroSampPerBuff+6;
+else
+    gyroLen = 0;
+    nGyroSampPerBuff = 0;
+    gyroSeek = 0;
+end
+SAMPTIME_SKIP = SAMP_LEN - SAMPTIME_LEN/2;
+INER_SKIP = (accelLen + magLen + gyroLen)*2 - 6 + SAMPTIME_LEN;
+sampBegSeek = -SAMP_LEN*nSampPerBuff+SAMPTIME_SKIP;
+sampEndSeek = -SAMP_LEN*nSampPerBuff-SAMPTIME_SKIP + SAMPTIME_LEN/2;
+
+%%
 while(eofstat==0)
 % for i = 1:4600
+    if pos == 372604
+        a = 1;
+    end
     iBuffer = iBuffer + 1;
     thisSensorId = fread(fid,1,'uint8') + 1;
     fseek(fid, 9, 'cof');
@@ -111,30 +159,28 @@ while(eofstat==0)
             nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
                 pos = ftell(fid); 
                 if SAMPTIME_LEN ~= 0
-                    thisSampleBeg = fread(fid, nSampPerBuff, 'uint16', 20);
-                    fseek(fid, -22*nSampPerBuff+20, 'cof');
-                    thisSampleEnd = fread(fid, nSampPerBuff, 'uint16', 20);
-                    fseek(fid, -22*nSampPerBuff-18, 'cof');
+                    thisSampleBeg = fread(fid, nSampPerBuff, 'uint16', SAMPTIME_SKIP);
+                    fseek(fid, sampBegSeek, 'cof');
+                    thisSampleEnd = fread(fid, nSampPerBuff, 'uint16', SAMPTIME_SKIP);
+                    fseek(fid, sampEndSeek, 'cof');
                     sampleTime(iSample:iSample+nSampPerBuff-1, :) = ...
                         [thisSampleBeg thisSampleEnd];
                 end 
-                if(bitand(SID_SPEC(thisSensorId).SensorType,32))
-                    accel(iSample:iSample+nSampPerBuff-1, :) = ...
-                        fread(fid, [3, nSampPerBuff], '3*int16', 16)';
-                    fseek(fid, -22*nSampPerBuff+6, 'cof');
-                end
-                if(bitand(SID_SPEC(thisSensorId).SensorType,16))
-                    mag(iSample:iSample+nSampPerBuff-1, :) = ...
-                        fread(fid, [3, nSampPerBuff], '3*int16', 16)';
-                    fseek(fid, -22*nSampPerBuff+6, 'cof');
-                end
-                if(bitand(SID_SPEC(thisSensorId).SensorType,8))
-                    gyro(iSample:iSample+nSampPerBuff-1, :) = ...
-                        fread(fid, [3, nSampPerBuff], '3*int16', 16)';
-                    fseek(fid, -22*nSampPerBuff+6, 'cof');
-                end
+                
+                accel(iSample:iSample+nAccelSampPerBuff-1, 1:accelLen) = ...
+                    fread(fid, [accelLen, nAccelSampPerBuff], '3*int16', INER_SKIP)';
+                fseek(fid, accelSeek, 'cof');
+
+                mag(iSample:iSample+nMagSampPerBuff-1, 1:magLen) = ...
+                    fread(fid, [magLen, nMagSampPerBuff], '3*int16', INER_SKIP)';
+                fseek(fid, magSeek, 'cof');
+
+                gyro(iSample:iSample+nGyroSampPerBuff-1, 1:gyroLen) = ...
+                    fread(fid, [gyroLen, nGyroSampPerBuff], '3*int16', INER_SKIP)';
+                fseek(fid, gyroSeek, 'cof');
+
                 iSample = iSample + nSampPerBuff;
-                fseek(fid, pos + 22*nSampPerBuff, 'bof');
+                fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
         end
         if(SID_SPEC(thisSensorId).DForm==3)
             nsamples=SID_SPEC(thisSensorId).nBytes;
@@ -148,5 +194,11 @@ while(eofstat==0)
     end
 end
 
-
-
+%%
+figure; 
+subplot(311)
+plot(accel*16/4096)
+subplot(312)
+plot(mag*1/1090)
+subplot(313)
+plot(gyro*500/32768)

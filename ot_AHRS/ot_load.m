@@ -7,15 +7,15 @@ surfacepress=1010;
 
 %ans=input('Append? 0=No  1=Yes ');
 ans=0;
-[FileName,PathName,FilterIndex] = uigetfile({'*.DSG','DSG files (*.DSG)'},'Select a DSG file');
-if isequal(FileName,0)|isequal(PathName,0)
-   return
-end
+% [FileName,PathName,FilterIndex] = uigetfile({'*.DSG','DSG files (*.DSG)'},'Select a DSG file');
+% if isequal(FileName,0)|isequal(PathName,0)
+%    return
+% end
     
-FileName
-cd(PathName);
-%FileName=('G:\000\0001.DSG');
-tic; [DF_HEAD, SID_SPEC, SID_REC,pos]=oDSG(FileName); toc
+% FileName
+% cd(PathName);
+FileName=('1.DSG');
+[DF_HEAD, SID_SPEC, SID_REC,pos]=oDSG(FileName);
 
 %%
 srate=1000000/(SID_SPEC(1).SPus);
@@ -170,5 +170,5 @@ end
 % "PTMP" Pressure, Temp
 % "INER" Accel Int, Comp, Gyro
 
-ot_plot;
+% ot_plot;
 
