@@ -1,6 +1,7 @@
-% addpath('F:\')
+% addpath('e:\')
+%%
 % FileName = '1416.DSG';
-FileName = '1.DSG';
+FileName = 'test3.DSG';
 if numel(FileName) <= 5
 SAMPTIME_LEN = 0; % 2 * 2
 WRITETIME_LEN = 0; % 4 * 2
@@ -165,31 +166,23 @@ while(eofstat==0)
     end
     if(SID_SPEC(thisSensorId).DForm==2)
         nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
-%             pos = ftell(fid); 
-
-                thisSampleBeg = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                fseek(fid, sampBegSeek, 'cof');
-                thisSampleEnd = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                fseek(fid, sampEndSeek, 'cof');
-                sampleTime(iSample:iSample+nTimeSampPerBuff-1, 1:SAMPARRAY_LEN) = ...
-                    [thisSampleBeg thisSampleEnd];
-
             iner(iSample:iSample + nSampPerBuff - 1, :) = ...
-                fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
-            fseek(fid, -SAMPTIME_LEN/2, 'cof');
-            
-%             fseek(fid, -SAMPTIME_LEN-(nSampPerBuff-1)*SAMP_LEN, 'cof');
-%             sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
-%                 fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
-%             fseek(fid, -18, 'cof');
+                fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';    
+% Order of the iner and sample, change the fseek, or only use one fseek
+            fseek(fid, -SAMPTIME_LEN-(nSampPerBuff-1)*SAMP_LEN, 'cof');
+            sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
+                fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
+            fseek(fid, -18, 'cof');
              
             iSample = iSample + nSampPerBuff;
     end 
+% Avoid the IF condition for telling whether it is pressure of iner
     if(SID_SPEC(thisSensorId).DForm==3)
         nsamples=SID_SPEC(thisSensorId).nBytes;
         SID_REC(iBuffer).data=fread(fid,nsamples,'uint8');  % 24-bit samples read in 8 bits at a time
     end
-     
+
+% Better way to end the iteration, avoid the two steps
     pos = ftell(fid);
     if pos >= fileLen - BUFFER_LEN; % 
         eofstat = 1;
@@ -197,13 +190,13 @@ while(eofstat==0)
 end
 
 %%
-accel = iner(:, 1:3);
-mag = iner(:, 4:6);
-gyro = iner(:, 7:9);
-figure; 
-subplot(311)
-plot(accel*16/4096)
-subplot(312)
-plot(mag*1/1090)
-subplot(313)
-plot(gyro*500/32768)
+% accel = iner(:, 1:3);
+% mag = iner(:, 4:6);
+% gyro = iner(:, 7:9);
+% figure; 
+% subplot(311)
+% plot(accel*16/4096)
+% subplot(312)
+% plot(mag*1/1090)
+% subplot(313)
+% plot(gyro*500/32768)
