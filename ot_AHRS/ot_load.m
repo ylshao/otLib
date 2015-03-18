@@ -14,7 +14,7 @@ ans=0;
     
 % FileName
 % cd(PathName);
-FileName=('test2.DSG');
+FileName=('1.DSG');
 [DF_HEAD, SID_SPEC, SID_REC,pos]=oDSG(FileName);
 
 %%

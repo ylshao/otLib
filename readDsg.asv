@@ -1,6 +1,6 @@
 
 % FileName = '1416.DSG';
-FileName = 'test2.DSG';
+FileName = '48.DSG';
 if numel(FileName) <= 5
 SAMPTIME_LEN = 0; % 2 * 2
 WRITETIME_LEN = 0; % 4 * 2
@@ -160,29 +160,34 @@ while(eofstat==0)
     thisSensorId = head(1)+1;
 %     fseek(fid, 9, 'cof');
     writeTime(iBuffer, 1:nWriteTime) = fread(fid, nWriteTime, 'uint32');        
-%     if thisSensorId ~= 1
-%         a = 1;
-%     end
+    if thisSensorId ~= 1
+        a = 1;
+    end
     if(SID_SPEC(thisSensorId).DForm==2)
         nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
 %             pos = ftell(fid); 
 
-                thisSampleBeg = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                fseek(fid, sampBegSeek, 'cof');
-                thisSampleEnd = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                fseek(fid, sampEndSeek, 'cof');
-                sampleTime(iSample:iSample+nTimeSampPerBuff-1, 1:SAMPARRAY_LEN) = ...
-                    [thisSampleBeg thisSampleEnd];
+%                 thisSampleBeg = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
+%                 fseek(fid, sampBegSeek, 'cof');
+%                 thisSampleEnd = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
+%                 fseek(fid, sampEndSeek, 'cof');
+%                 sampleTime(iSample:iSample+nTimeSampPerBuff-1, 1:SAMPARRAY_LEN) = ...
+%                     [thisSampleBeg thisSampleEnd];
 
 
 
             iner(iSample:iSample + nSampPerBuff - 1, :) = ...
                 fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
-            iSample = iSample + nSampPerBuff;
+            
 %             fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
             fseek(fid, -SAMPTIME_LEN/2, 'cof');
-%             sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
-%                 fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
+            
+            fseek(fid, -SAMPTIME_LEN-(nSampPerBuff-1)*, 'cof');
+            sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
+                fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
+            
+            
+            iSample = iSample + nSampPerBuff;
     end 
     if(SID_SPEC(thisSensorId).DForm==3)
         nsamples=SID_SPEC(thisSensorId).nBytes;

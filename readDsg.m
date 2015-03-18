@@ -1,6 +1,6 @@
-
+% addpath('F:\')
 % FileName = '1416.DSG';
-FileName = 'test2.DSG';
+FileName = '1.DSG';
 if numel(FileName) <= 5
 SAMPTIME_LEN = 0; % 2 * 2
 WRITETIME_LEN = 0; % 4 * 2
@@ -160,9 +160,9 @@ while(eofstat==0)
     thisSensorId = head(1)+1;
 %     fseek(fid, 9, 'cof');
     writeTime(iBuffer, 1:nWriteTime) = fread(fid, nWriteTime, 'uint32');        
-%     if thisSensorId ~= 1
-%         a = 1;
-%     end
+    if thisSensorId ~= 1
+        a = 1;
+    end
     if(SID_SPEC(thisSensorId).DForm==2)
         nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
 %             pos = ftell(fid); 
@@ -174,15 +174,16 @@ while(eofstat==0)
                 sampleTime(iSample:iSample+nTimeSampPerBuff-1, 1:SAMPARRAY_LEN) = ...
                     [thisSampleBeg thisSampleEnd];
 
-
-
             iner(iSample:iSample + nSampPerBuff - 1, :) = ...
                 fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
-            iSample = iSample + nSampPerBuff;
-%             fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
             fseek(fid, -SAMPTIME_LEN/2, 'cof');
+            
+%             fseek(fid, -SAMPTIME_LEN-(nSampPerBuff-1)*SAMP_LEN, 'cof');
 %             sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
 %                 fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
+%             fseek(fid, -18, 'cof');
+             
+            iSample = iSample + nSampPerBuff;
     end 
     if(SID_SPEC(thisSensorId).DForm==3)
         nsamples=SID_SPEC(thisSensorId).nBytes;
@@ -196,13 +197,13 @@ while(eofstat==0)
 end
 
 %%
-% accel = iner(:, 1:3);
-% mag = iner(:, 4:6);
-% gyro = iner(:, 7:9);
-% figure; 
-% subplot(311)
-% plot(accel*16/4096)
-% subplot(312)
-% plot(mag*1/1090)
-% subplot(313)
-% plot(gyro*500/32768)
+accel = iner(:, 1:3);
+mag = iner(:, 4:6);
+gyro = iner(:, 7:9);
+figure; 
+subplot(311)
+plot(accel*16/4096)
+subplot(312)
+plot(mag*1/1090)
+subplot(313)
+plot(gyro*500/32768)
