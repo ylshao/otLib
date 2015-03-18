@@ -1,4 +1,5 @@
 
+% FileName = '1416.DSG';
 FileName = 'test2.DSG';
 if numel(FileName) <= 5
 SAMPTIME_LEN = 0; % 2 * 2
@@ -100,51 +101,52 @@ pos = ftell(fid);
 clear SID_REC
 SID_REC(nBuffer, 1) = struct;
 writeTime = nan(nBuffer, 2);
-sampleTime = nan(nSamp, 2);
+
 % accel = nan(nSamp, 3);
 % mag = nan(nSamp, 3);
 % gyro = nan(nSamp, 3);
 
-
+sampleTime = nan(nSamp, 2);
 % sample = SAMPLE_LEN
 %%
 thisSensorId = 1;
 if(bitand(SID_SPEC(thisSensorId).SensorType,32))
     accelLen = 3;
-    nAccelSampPerBuff = nSampPerBuff;
-    accelSeek = -SAMP_LEN*nAccelSampPerBuff+6;
 else
     accelLen = 0;
-    nAccelSampPerBuff = 0;
-    accelSeek = 0;
 end
 
 if(bitand(SID_SPEC(thisSensorId).SensorType,16))
     magLen = 3;
-    nMagSampPerBuff = nSampPerBuff;
-    magSeek = -SAMP_LEN*nMagSampPerBuff+6;
 else
     magLen = 0;
-    nMagSampPerBuff = 0;
-    magSeek = 0;
 end
 
 if(bitand(SID_SPEC(thisSensorId).SensorType,8))
     gyroLen = 3;
-    nGyroSampPerBuff = nSampPerBuff;
-    gyroSeek = -SAMP_LEN*nGyroSampPerBuff+6;
 else
     gyroLen = 0;
-    nGyroSampPerBuff = 0;
-    gyroSeek = 0;
 end
 SAMPTIME_SKIP = SAMP_LEN - SAMPTIME_LEN/2;
 INER_LEN = (accelLen + magLen + gyroLen);
 INER_SKIP = (accelLen + magLen + gyroLen)*2 - 6 + SAMPTIME_LEN;
-sampBegSeek = -SAMP_LEN*nSampPerBuff+SAMPTIME_SKIP;
-sampEndSeek = -SAMP_LEN*nSampPerBuff-SAMPTIME_SKIP + SAMPTIME_LEN/2;
 
-
+if SAMPTIME_LEN ~= 0
+    nTimeSampPerBuff = nSampPerBuff;
+    sampBegSeek = -SAMP_LEN*nSampPerBuff+SAMPTIME_SKIP;
+    sampEndSeek = -SAMP_LEN*nSampPerBuff-SAMPTIME_SKIP + SAMPTIME_LEN/2;
+    SAMPARRAY_LEN = 2;
+else
+    nTimeSampPerBuff = 0;
+    sampBegSeek = 0;
+    sampEndSeek = 0;
+    SAMPARRAY_LEN = 0;
+end
+if WRITETIME_LEN ~= 0
+    nWriteTime = 2;
+else
+    nWriteTime = 0;
+end
 iner = nan(nSamp, INER_LEN);
 inerPrec = sprintf('%d*int16', INER_LEN);
 %%
@@ -154,54 +156,49 @@ while(eofstat==0)
         a = 1;
     end
     iBuffer = iBuffer + 1;
-    thisSensorId = fread(fid,1,'uint8') + 1;
-    fseek(fid, 9, 'cof');
-    if WRITETIME_LEN ~= 0
-        writeTime(iBuffer, :) = fread(fid, 2, 'uint32');
-    end
-    if(thisSensorId <= numel(SID_SPEC))         
-        if(SID_SPEC(thisSensorId).DForm==2)
-            nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
-                pos = ftell(fid); 
-                if SAMPTIME_LEN ~= 0
-                    thisSampleBeg = fread(fid, nSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                    fseek(fid, sampBegSeek, 'cof');
-                    thisSampleEnd = fread(fid, nSampPerBuff, 'uint16', SAMPTIME_SKIP);
-                    fseek(fid, sampEndSeek, 'cof');
-                    sampleTime(iSample:iSample+nSampPerBuff-1, :) = ...
-                        [thisSampleBeg thisSampleEnd];
-                end 
-                
-%                 accel(iSample:iSample+nAccelSampPerBuff-1, 1:accelLen) = ...
-%                     fread(fid, [accelLen, nAccelSampPerBuff], '3*int16', INER_SKIP)';
-%                 fseek(fid, accelSeek, 'cof');
-% 
-%                 mag(iSample:iSample+nMagSampPerBuff-1, 1:magLen) = ...
-%                     fread(fid, [magLen, nMagSampPerBuff], '3*int16', INER_SKIP)';
-%                 fseek(fid, magSeek, 'cof');
-% 
-%                 gyro(iSample:iSample+nGyroSampPerBuff-1, 1:gyroLen) = ...
-%                     fread(fid, [gyroLen, nGyroSampPerBuff], '3*int16', INER_SKIP)';
-%                 fseek(fid, gyroSeek, 'cof');
-                
-                iner(iSample:iSample + nSampPerBuff - 1, :) = ...
-                    fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
-                iSample = iSample + nSampPerBuff;
-                fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
-        end
-        if(SID_SPEC(thisSensorId).DForm==3)
-            nsamples=SID_SPEC(thisSensorId).nBytes;
-            SID_REC(iBuffer).data=fread(fid,nsamples,'uint8');  % 24-bit samples read in 8 bits at a time
-        end
+    head = fread(fid,10,'uint8');
+    thisSensorId = head(1)+1;
+%     fseek(fid, 9, 'cof');
+    writeTime(iBuffer, 1:nWriteTime) = fread(fid, nWriteTime, 'uint32');        
+%     if thisSensorId ~= 1
+%         a = 1;
+%     end
+    if(SID_SPEC(thisSensorId).DForm==2)
+        nsamples=(SID_SPEC(thisSensorId).nBytes)/2;  %/2 because in bytes
+%             pos = ftell(fid); 
+
+                thisSampleBeg = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
+                fseek(fid, sampBegSeek, 'cof');
+                thisSampleEnd = fread(fid, nTimeSampPerBuff, 'uint16', SAMPTIME_SKIP);
+                fseek(fid, sampEndSeek, 'cof');
+                sampleTime(iSample:iSample+nTimeSampPerBuff-1, 1:SAMPARRAY_LEN) = ...
+                    [thisSampleBeg thisSampleEnd];
+
+
+
+            iner(iSample:iSample + nSampPerBuff - 1, :) = ...
+                fread(fid, [INER_LEN, nSampPerBuff], inerPrec, SAMPTIME_LEN)';
+            iSample = iSample + nSampPerBuff;
+%             fseek(fid, pos + SAMP_LEN*nSampPerBuff, 'bof');
+            fseek(fid, -SAMPTIME_LEN/2, 'cof');
+%             sampleTime(iSample:iSample+nTimeSampPerBuff-1, :) = ...
+%                 fread(fid, [2, nSampPerBuff], '2*uint16', 18)';
+    end 
+    if(SID_SPEC(thisSensorId).DForm==3)
+        nsamples=SID_SPEC(thisSensorId).nBytes;
+        SID_REC(iBuffer).data=fread(fid,nsamples,'uint8');  % 24-bit samples read in 8 bits at a time
     end
      
     pos = ftell(fid);
-    if pos >= fileLen;
+    if pos >= fileLen - BUFFER_LEN; % 
         eofstat = 1;
     end
 end
 
 %%
+% accel = iner(:, 1:3);
+% mag = iner(:, 4:6);
+% gyro = iner(:, 7:9);
 % figure; 
 % subplot(311)
 % plot(accel*16/4096)

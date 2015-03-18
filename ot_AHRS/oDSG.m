@@ -64,9 +64,9 @@ SID_REC=[];
 
 while(eofstat==0)
     reccounter=reccounter+1;
-    if reccounter == 54836;
-        a = 1;
-    end
+%     if reccounter == 54836;
+%         a = 1;
+%     end
     SID_REC(reccounter).nSID=fread(fid,1,'uint8');
     SID_REC(reccounter).Chan=fread(fid,1,'uint8');
     SID_REC(reccounter).nbytes=fread(fid,1,'uint32');  %  Number of bytes recorded since start of sampling for this SID
@@ -92,4 +92,4 @@ while(eofstat==0)
     eofstat = feof(fid);
 end
 
-fclose(fid);
+% fclose(fid);

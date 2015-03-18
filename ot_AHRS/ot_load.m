@@ -38,6 +38,9 @@ INER_ts=[];
 A0_ts=[];
 PTMP_ts=[];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SLOW CODES BELOW
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for x=1:length(SID_REC)
     cur_sid=(SID_REC(x).nSID);
     if(cur_sid==0)
@@ -53,7 +56,9 @@ for x=1:length(SID_REC)
         dsgdata3=vertcat(dsgdata3,SID_REC(x).data);
     end
 end
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SLOW CODES ABOVE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for n=1:length(SID_SPEC)  % Loop through all SIDs and reassign
     
     if(SID_SPEC(n).SID'=='HYD1')
